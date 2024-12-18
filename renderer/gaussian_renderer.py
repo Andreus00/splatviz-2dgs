@@ -40,6 +40,7 @@ class GaussianRenderer(Renderer):
         video_cams=[],
         render_depth=False,
         render_alpha=False,
+        render_normals=False,
         img_normalize=False,
         use_splitscreen=False,
         highlight_border=False,
@@ -77,16 +78,18 @@ class GaussianRenderer(Renderer):
 
             # Render video
             if len(video_cams) > 0:
-                self.render_video("./_videos", video_cams, gs)
+                self.render_video("./_videos", video_cams, gs, render_normals=render_normals)
 
             # Render current view
             fov_rad = fov / 360 * 2 * np.pi
             render_cam = CustomCam(resolution, resolution, fovy=fov_rad, fovx=fov_rad, extr=cam_params)
             render = render_simple(viewpoint_camera=render_cam, pc=gs, bg_color=background_color.to("cuda"))
             if render_alpha:
-                images.append(render["alpha"])
+                images.append(render["rend_alpha"])
             elif render_depth:
-                images.append(render["depth"] / render["depth"].max())
+                images.append(render["surf_depth"] / render["surf_depth"].max())
+            elif render_normals:
+                images.append(render["surf_normal"])
             else:
                 images.append(render["render"])
 
@@ -117,12 +120,15 @@ class GaussianRenderer(Renderer):
             raise NotImplementedError("Only .ply or .yml files are supported.")
         return model
 
-    def render_video(self, save_path, video_cams, gaussian):
+    def render_video(self, save_path, video_cams, gaussian, render_normals=False):
         os.makedirs(save_path, exist_ok=True)
         filename = f"{save_path}/rotate_{len(os.listdir(save_path))}.mp4"
         video = imageio.get_writer(filename, mode="I", fps=30, codec="libx264", bitrate="16M", quality=10)
+        pkg_target = "rander"
+        if render_normals:
+            pkg_target = "surf_normal"
         for render_cam in tqdm(video_cams):
-            img = render_simple(viewpoint_camera=render_cam, pc=gaussian, bg_color=self.bg_color)["render"]
+            img = render_simple(viewpoint_camera=render_cam, pc=gaussian, bg_color=self.bg_color)[pkg_target]
             img = (img * 255).clamp(0, 255).to(torch.uint8).permute(1, 2, 0).cpu().numpy()
             video.append_data(img)
         video.close()

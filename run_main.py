@@ -1,3 +1,7 @@
+import os
+os.environ['USING_2DGS'] = 'T'
+
+
 import click
 from splatviz import Splatviz
 

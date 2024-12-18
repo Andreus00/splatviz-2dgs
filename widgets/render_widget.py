@@ -11,6 +11,7 @@ class RenderWidget(Widget):
         super().__init__(viz, "Render")
         self.render_alpha = False
         self.render_depth = False
+        self.render_normals = False
         self.render_gan_image = False
         self.resolution = 1024
         self.background_color = torch.tensor([0.0, 0.0, 0.0])
@@ -27,14 +28,23 @@ class RenderWidget(Widget):
 
             label("Render Depth", viz.label_w)
             depth_changed, self.render_depth = imgui.checkbox("##RenderDepth", self.render_depth)
+
+            label("Render Normals", viz.label_w)
+            normals_changed, self.render_normals = imgui.checkbox("##RenderNormals", self.render_normals)
+
             if decoder:
                 label("Render GAN", viz.label_w)
                 _, self.render_gan_image = imgui.checkbox("##RenderGAN", self.render_gan_image)
 
             if self.render_alpha and alpha_changed:
                 self.render_depth = False
+                self.render_normals = False
             if self.render_depth and depth_changed:
                 self.render_alpha = False
+                self.render_normals = False
+            if self.render_normals and normals_changed:
+                self.render_alpha = False
+                self.render_depth = False
 
             label("Background Color", viz.label_w)
             _changed, background_color = imgui.input_float3("##background_color", v=self.background_color.tolist(), format="%.1f")
@@ -45,4 +55,5 @@ class RenderWidget(Widget):
         viz.args.resolution = self.resolution
         viz.args.render_alpha = self.render_alpha
         viz.args.render_depth = self.render_depth
+        viz.args.render_normals = self.render_normals
         viz.args.render_gan_image = self.render_gan_image
